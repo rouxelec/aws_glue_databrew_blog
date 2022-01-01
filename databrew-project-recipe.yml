@@ -1,0 +1,131 @@
+- Action:
+    Operation: DELETE
+    Parameters:
+      sourceColumns: >-
+        ["activeLengths","activeSets","activityId","activityLikeAuthors","activityLikeDisplayNames","activityLikeFullNames","activityLikeProfileImageUrls","activityName","activityTrainingLoad","aerobicTrainingEffect","aerobicTrainingEffectMessage","anaerobicTrainingEffect","anaerobicTrainingEffectMessage","atpActivity","autoCalcCalories","averageBikingCadenceInRevPerMinute","averageRunningCadenceInStepsPerMinute","averageSwimCadenceInStrokesPerMinute","averageSwolf","avgAirSpeed","avgCda","avgDepth","avgDoubleCadence","avgFlow","avgFractionalCadence","avgGrit","avgGroundContactBalance","avgGroundContactTime","avgLeftBalance","avgPower","avgRespirationRate","avgStress","avgStrideLength","avgStrokeCadence","avgStrokeDistance","avgStrokes","avgVerticalOscillation","avgVerticalRatio","avgVerticalSpeed","avgWattsPerCda","avgWindYawAngle","bottomTime","calendarEventId","calendarEventUuid","caloriesConsumed","caloriesEstimated","commentedByUser","comments","conversationPk","conversationUuid","courseId","decoDive","description","deviceId","differenceStress","diveNumber","elevationCorrected","endCns","endN2","endStress","excludeFromPowerCurveReports","favorite","floorsClimbed","floorsDescended","flow","grit","hasPolyline","hasSeedFirstbeatProfile","hasSplits","hasVideo","intensityFactor","jumpCount","lactateThresholdBpm","lactateThresholdSpeed","lapCount","leftBalance","likedByUser","manualActivity","manufacturer","max20MinPower","maxAirSpeed","maxAvgPower_1","maxAvgPower_10","maxAvgPower_120","maxAvgPower_1200","maxAvgPower_1800","maxAvgPower_18000","maxAvgPower_2","maxAvgPower_20","maxAvgPower_30","maxAvgPower_300","maxAvgPower_3600","maxAvgPower_5","maxAvgPower_60","maxAvgPower_600","maxAvgPower_7200","maxBikingCadenceInRevPerMinute","maxBottomTime","maxCda","maxDepth","maxDoubleCadence","maxFractionalCadence","maxFtp","maxPower","maxRespirationRate","maxRunningCadenceInStepsPerMinute","maxSpeed","maxStress","maxStrokeCadence","maxSwimCadenceInStrokesPerMinute","maxTemperature","maxVerticalSpeed","minActivityLapDuration","minAirSpeed","minCda","minRespirationRate","minStrokes","normPower","numberOfActivityComments","numberOfActivityLikes","ownerDisplayName","ownerId","ownerProfileImageUrlLarge","ownerProfileImageUrlMedium","ownerProfileImageUrlSmall","parent","parentId","poolLength","pr","privacy","purposeful","requestorRelationship","rightBalance","splitSummaries","sportTypeId","startCns","startN2","startStress","steps","strokes","summarizedDiveInfo","summarizedExerciseSets","surfaceInterval","timeZoneId","totalReps","totalSets","trainingEffectLabel","trainingStressScore","unitOfPoolLength","userPro","userRoles","videoUrl","waterConsumed","waterEstimated","workoutId"]
+- Action:
+    Operation: UNNEST_SPECIFIC_KEY
+    Parameters:
+      delimiter: .
+      path: '`activityType`.`typeKey`'
+      sourceColumn: activityType
+      targetColumn: activityType_unnested
+- Action:
+    Operation: EXTRACT_VALUE
+    Parameters:
+      path: '`activityType`.`typeKey`'
+      sourceColumn: activityType
+      targetColumn: activityType_extracted
+- Action:
+    Operation: DELETE
+    Parameters:
+      sourceColumns: '["activityType","activityType_unnested"]'
+- Action:
+    Operation: REMOVE_VALUES
+    Parameters:
+      sourceColumn: activityType_extracted
+  ConditionExpressions:
+    - Condition: IS_NOT
+      Value: '["running","street_running"]'
+      TargetColumn: activityType_extracted
+- Action:
+    Operation: BINARIZATION
+    Parameters:
+      flip: 'false'
+      sourceColumn: distance
+      targetColumn: marathon
+      threshold: '42000'
+- Action:
+    Operation: MONTH_NAME
+    Parameters:
+      dateTimeFormat: yyyy-mm-dd*HH:MM:SS
+      functionStepType: MONTH_NAME
+      sourceColumn: startTimeLocal
+      targetColumn: startTimeLocal_MONTHNAME
+- Action:
+    Operation: YEAR
+    Parameters:
+      dateTimeFormat: yyyy-mm-dd*HH:MM:SS
+      functionStepType: YEAR
+      sourceColumn: startTimeLocal
+      targetColumn: startTimeLocal_YEAR
+- Action:
+    Operation: REMOVE_VALUES
+    Parameters:
+      sourceColumn: startTimeLocal_YEAR
+  ConditionExpressions:
+    - Condition: IS_NOT
+      Value: '["2020","2019","2017","2015","2016","2018","2021"]'
+      TargetColumn: startTimeLocal_YEAR
+- Action:
+    Operation: DETERMINISTIC_ENCRYPT
+    Parameters:
+      createSecretIfMissing: 'true'
+      secretId: databrew!default
+      sourceColumns: '["ownerFullName"]'
+- Action:
+    Operation: UNIX_TIME_FORMAT
+    Parameters:
+      dateTimeFormat: HH:MM:SS
+      functionStepType: UNIX_TIME_FORMAT
+      sourceColumn: duration
+      targetColumn: duration_UNIXTIMEFORMAT
+- Action:
+    Operation: MULTIPLY
+    Parameters:
+      functionStepType: MULTIPLY
+      sourceColumn1: averageSpeed
+      targetColumn: averageSpeed_km_h
+      value2: '3.6'
+- Action:
+    Operation: DELETE
+    Parameters:
+      sourceColumns: '["eventType"]'
+- Action:
+    Operation: FILL_WITH_AVERAGE
+    Parameters:
+      sourceColumn: averageHR
+- Action:
+    Operation: DIVIDE
+    Parameters:
+      functionStepType: DIVIDE
+      sourceColumn1: distance
+      targetColumn: distance_DIVIDE
+      value2: '1000'
+- Action:
+    Operation: ROUND
+    Parameters:
+      functionStepType: ROUND
+      sourceColumn: distance_DIVIDE
+      targetColumn: distance_in_km
+- Action:
+    Operation: ROLLING_SUM
+    Parameters:
+      functionStepType: ROLLING_SUM
+      numRowsAfter: '0'
+      numRowsBefore: '2'
+      orderByColumn: startTimeLocal
+      sourceColumn: distance_in_km
+      targetColumn: distance_3_activities_before
+- Action:
+    Operation: ROLLING_MAX
+    Parameters:
+      functionStepType: ROLLING_MAX
+      numRowsAfter: '0'
+      numRowsBefore: '14'
+      orderByColumn: startTimeLocal
+      sourceColumn: distance_in_km
+      targetColumn: distance_max_last_15_activities
+- Action:
+    Operation: ROLLING_SUM
+    Parameters:
+      functionStepType: ROLLING_SUM
+      numRowsAfter: '2'
+      numRowsBefore: '0'
+      orderByColumn: startTimeLocal
+      sourceColumn: distance_in_km
+      targetColumn: distance_3_activities_after
+- Action:
+    Operation: DELETE
+    Parameters:
+      sourceColumns: '["distance","distance_DIVIDE"]'
