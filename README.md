@@ -1,6 +1,4 @@
-# aws_glue_databrew_blog
-
-Get the best of your data with absolutely no code 
+# Get the best of your data with absolutely no code 
 
 Or how to leverage AWS Glue DataBrew to easily build data pipelines with no data engineering skills. 
 
